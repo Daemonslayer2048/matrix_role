@@ -1,0 +1,115 @@
+- name: Create Matrix User
+  ansible.builtin.user:
+    name: "{{ matrix_user }}"
+    comment: Matrix-Synapse Service User
+    home: "{{ matrix_user_home }}"
+    system: yes
+    shell: /sbin/nologin
+
+- name: Check if python39 venv exists
+  ansible.builtin.stat:
+    path: "{{ matrix_user_home }}/env"
+  register: matrix_pip_env
+
+- name: Manually create the initial virtualenv
+  become_user: "{{ matrix_user }}"
+  become: true
+  ansible.builtin.command:
+    chdir: "{{ matrix_user_home }}"
+    cmd: /usr/bin/python3.9 -m venv env
+    creates: "{{ matrix_user_home }}/env"
+  when: not matrix_pip_env.stat.exists
+
+- name: Install Matrix PIP Deps
+  ansible.builtin.pip:
+    virtualenv: "{{ matrix_user_home }}/env"
+    virtualenv_python: /usr/bin/python3.9
+    name:
+      - matrix-synapse
+      - matrix-synapse[postgres]
+      - psycopg2
+
+- name: Create Systemd Service
+  ansible.builtin.template:
+    src: ./templates/matrix_service.j2
+    dest: /etc/systemd/system/matrix.service
+
+- name: Manually create the initial virtualenv
+  become_user: "{{ matrix_user }}"
+  become: true
+  ansible.builtin.command:
+    chdir: "{{ matrix_user_home }}"
+    cmd: /usr/bin/python3.9 -m venv env
+    creates: "{{ matrix_user_home }}/env"
+  when: not matrix_pip_env.stat.exists
+
+- name: Check if matrix config file exists
+  ansible.builtin.shell: "file {{ matrix_user_home }}/homeserver.yaml"
+  register: config_exists
+  ignore_errors: yes
+
+- name: Create initial config file
+  ansible.builtin.shell:
+    chdir: "{{ matrix_user_home }}"
+    cmd: |
+      {{ matrix_user_home }}/env/bin/python3 \
+      -m synapse.app.homeserver \
+      --server-name {{ host_name }}.{{ host_public_domain }} \
+      --config-path {{ matrix_user_home }}/homeserver.yaml \
+      --generate-config --report-stats=no
+
+- name: Slurp Config File
+  ansible.builtin.slurp:
+    path: "{{ matrix_user_home }}/homeserver.yaml"
+  register: matrix_config
+
+- name: Convert Config File to fact
+  ansible.builtin.set_fact:
+    matrix_config: "{{ matrix_config['content'] | b64decode | from_yaml }}"
+
+- name: Update Config
+  vars:
+    config:
+      server_name: "{{ host_name }}.{{ host_public_domain }}"
+      public_baseurl: "https://{{ host_name }}.{{ host_public_domain }}"
+      listeners:
+        - bind_addresses:
+            - "{{ ansible_facts['eth0']['ipv4']['address'] }}"
+          port: 8008
+          resources:
+            - compress: false
+              names:
+                - client
+                - federation
+          tls: false
+          type: http
+          x_forwarded": true
+      database:
+        name: psycopg2
+        args:
+          user: "{{ psql_application_user }}"
+          password: "{{ psql_application_password }}"
+          database: "{{ psql_application_database }}"
+          host: localhost
+          cp_min: 5
+          cp_max: 10
+  ansible.builtin.set_fact:
+    updated_config: "{{ config }}"
+
+- name: Update Sections in Config
+  ansible.builtin.set_fact:
+    matrix_config: "{{ matrix_config | combine(updated_config, recursive=True) }}"
+  notify:
+    - Restart Matrix
+
+# This form of YAMl printing is probably the ugliset I have ever seen
+- name: Re-write Matrix Config File
+  ansible.builtin.copy:
+    content: "{{ matrix_config | to_yaml }}"
+    dest: "{{ matrix_user_home }}/homeserver.yaml"
+
+- name: Enable Matrix Service
+  ansible.builtin.service:
+    name: matrix
+    state: started
+    enabled: yes

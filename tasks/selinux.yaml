@@ -1,0 +1,28 @@
+- name: Set domain_can_mmap_files flag on
+  ansible.posix.seboolean:
+    name: domain_can_mmap_files
+    state: yes
+    persistent: yes
+
+- name: Check if Custom SELinux Module is Installed
+  shell: semodule -l | grep matrix_selinux
+  register: module_installed
+  ignore_errors: yes
+
+# There should be a more idempotent way to handle this
+- name: Install Custom Module
+  block:
+    - name: Copy TE to VM
+      ansible.builtin.copy:
+        src: ./files/matrix_selinux.te
+        dest: /tmp/
+
+    - name: Convert TE to SELinux Module
+      shell: checkmodule -M -m -o /tmp/matrix_selinux.mod /tmp/matrix_selinux.te
+
+    - name: Convert SELinux Module to PP
+      shell: semodule_package -o /tmp/matrix_selinux.pp -m /tmp/matrix_selinux.mod
+
+    - name: Install SELinux PP File
+      shell: semodule -i /tmp/matrix_selinux.pp
+  when: module_installed.rc == 1

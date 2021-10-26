@@ -1,0 +1,13 @@
+[Unit]
+Description=Synapse Matrix homeserver
+
+[Service]
+Type=simple
+User={{ matrix_user }}
+Group={{ matrix_user }}
+WorkingDirectory={{ matrix_user_home }}
+ExecStart={{ matrix_user_home }}/env/bin/python -B -u -m synapse.app.homeserver -c {{ matrix_user_home }}/homeserver.yaml
+ExecStop={{ matrix_user_home }}/env/bin/synctl stop {{ matrix_user_home }}/homeserver.yaml
+
+[Install]
+WantedBy=multi-user.target

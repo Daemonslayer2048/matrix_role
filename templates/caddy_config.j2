@@ -1,0 +1,8 @@
+{{ ansible_facts['hostname'] }}.{{ host_public_domain }} {
+  reverse_proxy /_matrix/*          http://{{ groups['Matrix'][0] }}:8008
+  reverse_proxy /_synapse/client/*  http://{{ groups['Matrix'][0] }}:8008
+}
+
+{{ ansible_facts['hostname'] }}.{{ host_public_domain }}:8448 {
+  reverse_proxy * http://{{ groups['Matrix'][0] }}:8008
+}

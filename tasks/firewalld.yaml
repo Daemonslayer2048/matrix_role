@@ -1,0 +1,30 @@
+- name: Allow Caddy Through Firewalld
+  ansible.posix.firewalld:
+    rich_rule: rule family="ipv4" source address="{{ groups['Caddy'][0] }}" port port="80" protocol="tcp" accept
+    zone: public
+    permanent: yes
+    immediate: yes
+    state: enabled
+  notify:
+    - Restart Firewalld
+
+- name: Allow Caddy Through Firewalld
+  ansible.posix.firewalld:
+    rich_rule: rule family="ipv4" source address="{{ groups['Caddy'][0] }}" port port="8008" protocol="tcp" accept
+    zone: public
+    permanent: yes
+    immediate: yes
+    state: enabled
+  notify:
+    - Restart Firewalld
+
+- name: Allow Matrix Traffic To Caddy Through Firewalld
+  delegate_to: "{{ groups['Caddy'][0] }}"
+  ansible.posix.firewalld:
+    rich_rule: rule family="ipv4" port port="8448" protocol="tcp" accept
+    zone: public
+    permanent: yes
+    immediate: yes
+    state: enabled
+  notify:
+    - Restart Firewalld

@@ -1,0 +1,25 @@
+- name: Ping Matrix
+  ansible.builtin.ping:
+
+- name: Include Install
+  include: install.yaml
+
+- name: Include Firewalld
+  include: firewalld.yaml
+
+- name: Include SELinux
+  include: selinux.yaml
+
+- name: Include Postgres
+  include: postgres.yaml
+
+- name: Setup Matrix
+  include: matrix_setup.yaml
+
+- name: Add Caddy Config for Matrix
+  delegate_to: "{{ groups['Caddy'][0] }}"
+  ansible.builtin.template:
+    src: ./templates/caddy_config.j2
+    dest: /etc/caddy/sites-enabled/matrix_config
+  notify:
+    - Restart Caddy

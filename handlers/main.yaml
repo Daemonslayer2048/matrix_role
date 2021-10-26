@@ -1,0 +1,15 @@
+- name: Restart Firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: restarted
+
+- name: Restart Matrix
+  ansible.builtin.systemd:
+    name: matrix
+    state: restarted
+
+- name: Restart Caddy
+  delegate_to: "{{ groups['Caddy'][0] }}"
+  ansible.builtin.systemd:
+    name: caddy
+    state: restarted

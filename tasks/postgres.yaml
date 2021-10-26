@@ -1,0 +1,57 @@
+- name: Install Postgres Requirements
+  ansible.builtin.package:
+    name:
+      - python3-psycopg2
+    state: present
+
+- name: Install PostgreSQL
+  ansible.builtin.dnf:
+    state: present
+    name:
+      - postgresql-server
+
+- name: Check if Postgres is Initialized
+  ansible.builtin.stat:
+    path: /var/lib/pgsql/data/postgresql.conf
+  register: postgresql_conf
+
+- name: Initialize PostgreSQL
+  shell: /usr/bin/postgresql-setup --initdb
+  when: postgresql_conf.stat.islnk is not defined
+
+- name: Allow Local Auth
+  ansible.builtin.lineinfile:
+    path: /var/lib/pgsql/data/pg_hba.conf
+    line: 'host    all             all             ::1/128                 md5'
+    insertafter: 'host    all             all             127.0.0.1/32            ident'
+
+- name: Enable Postgres Service
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Create Application User
+  become: yes
+  become_user: postgres
+  ansible.builtin.postgresql_user:
+    name: "{{ psql_application_user }}"
+    password: "{{ psql_application_password }}"
+    state: present
+
+- name: Create Application Database
+  become: yes
+  become_user: postgres
+  ansible.builtin.postgresql_db:
+    owner: "{{ psql_application_user }}"
+    name: "{{ psql_application_database }}"
+    encoding: UTF8
+    lc_collate: C
+    lc_ctype: C
+    template: template0
+
+- name: Enable PostgreSQL Service
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: yes
