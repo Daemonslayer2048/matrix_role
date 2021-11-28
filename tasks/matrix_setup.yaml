@@ -54,7 +54,7 @@
     cmd: |
       {{ matrix_user_home }}/env/bin/python3 \
       -m synapse.app.homeserver \
-      --server-name {{ host_name }}.{{ host_public_domain }} \
+      --server-name {{ hostname }}.{{ host_public_domain }} \
       --config-path {{ matrix_user_home }}/homeserver.yaml \
       --generate-config --report-stats=no
 
@@ -70,11 +70,11 @@
 - name: Update Config
   vars:
     config:
-      server_name: "{{ host_name }}.{{ host_public_domain }}"
-      public_baseurl: "https://{{ host_name }}.{{ host_public_domain }}"
+      server_name: "{{ hostname }}.{{ host_public_domain }}"
+      public_baseurl: "https://{{ hostname }}.{{ host_public_domain }}"
       listeners:
         - bind_addresses:
-            - "{{ ansible_facts['eth0']['ipv4']['address'] }}"
+            - "{{ ansible_ssh_host }}"
           port: 8008
           resources:
             - compress: false

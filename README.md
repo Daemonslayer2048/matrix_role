@@ -1,38 +1,63 @@
-Role Name
-=========
+# Ansible Matrix Server Role  
+## Summary
+__Graph:__
+``` mermaid
+graph LR;
+  subgraph Roles
+    common_role-->matrix_role;
+    common_role-.->caddy_role;
+  end
+  subgraph Hosts
+    matrix_role-->Matrix;
+    caddy_role-.->Caddy;
+    Router-.Ports 80,8448.->Caddy;
+    Caddy-.Port 8008.->Matrix;
+  end
+```
+This roles setups up a Matrix chat server (this does not include the element web app). When a caddy reverse proxy is present in the ansible inventory file the reverse proxy file will be pushed to caddy and caddy will be allowed access to the matrix server. 
 
-A brief description of the role goes here.
+## Requirements
+### ansible-galaxy
+__Collections:__
+  - [community.general](https://docs.ansible.com/ansible/latest/collections/community/general/index.html)
 
-Requirements
-------------
+__Roles:__
+  - [daemonslayer2048.common](https://github.com/Daemonslayer2048/common_role)
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+## Variables
+| Variable | Type | Required | Default | Example |
+|    -     |   -  |     -    |    -    |    -    |
+| [hostname](#hostname) | string | True | N/A | cloud |
+| [host_public_domain](#host_public_domain) | string | True | N/A | null.com |
+| [matrix_user](#matrix_user) | string | True | matrix | matrix |
+| [matrix_user_home](#matrix_user_home) | string | True | /srv/matrix | /srv/matrix |
+| [psql_application_user](#psql_application_user) | string | True | N/A | Matrix |
+| [psql_application_password](#psql_application_password) | string | True | N/A | Password1 |
+| [psql_application_database](#psql_application_database) | string | True | N/A | Matrix |
 
-Role Variables
---------------
+### Variable Summaries:
+#### hostname
+This is used in multiple locations to set the FQDN of the server and to be used in setting the public URL for the server when the [Caddy reverse proxy role](https://github.com/Daemonslayer2048/caddy_role) is deployed.
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+#### host_public_domain
+Completes the domain portion of the public URL with the help of the variable above.
 
-Dependencies
-------------
+#### matrix_user  
+The name of the user matrix will run as on the host
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+#### matrix_user_home  
+The home of the matrix service user
 
-Example Playbook
-----------------
+#### psql_application_user  
+The username the matrix service will use to authenticate to the database.
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+#### psql_application_password  
+The password the matrix service will use to authenticate to the database.
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+#### psql_application_database  
+The database name the matrix service will use.
 
-License
--------
 
-BSD
-
-Author Information
-------------------
-
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+## Notes:
+### Testing Issues
+  - Selinux Modules can not be tested in podman so these tests are performed outside of the stesting suite :(

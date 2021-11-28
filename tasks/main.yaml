@@ -1,3 +1,7 @@
+#- name: Print facts
+#  ansible.builtin.debug:
+#    var: ansible_facts
+
 - name: Ping Matrix
   ansible.builtin.ping:
 
@@ -6,9 +10,11 @@
 
 - name: Include Firewalld
   include: firewalld.yaml
+  when: groups['Caddy'] is defined and (groups['Caddy'] | length > 0)
 
 - name: Include SELinux
   include: selinux.yaml
+  when: (testing is not defined) or (testing is false)
 
 - name: Include Postgres
   include: postgres.yaml
@@ -23,3 +29,4 @@
     dest: /etc/caddy/sites-enabled/matrix_config
   notify:
     - Restart Caddy
+  when: groups['Caddy'] is defined and (groups['Caddy'] | length > 0)

@@ -1,0 +1,10 @@
+testing: True
+
+# Host Section
+hostname: cloud
+host_public_domain: null.com
+
+# Postgres Section
+psql_application_user: Matrix
+psql_application_password: Password1
+psql_application_database: Matrix
