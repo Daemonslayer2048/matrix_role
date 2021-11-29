@@ -1,6 +1,6 @@
 galaxy_info:
   author: Jacob Hanafin
-  description: A base role that should be applied to all servers
+  description: Install a Matrix chat server
   namespace: daemonslayer2048
   role_name: matrix
   license: GPL-3.0-only
